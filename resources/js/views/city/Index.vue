@@ -4,9 +4,14 @@
   <SearchForm :route="'/city'" :placeholder="getTranslation('city', 'search_placeholder')" @search="handleSearch" />
 
   <router-link :to="{ name: 'city.create' }"
-    class="inline-block bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded mb-6">
+    class="mr-4 inline-block bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded mb-6">
     {{ getTranslation('city', 'create_city') }}
   </router-link>
+
+  <button @click="toggleArchivedView"
+    class="mr-4 bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded mb-6">
+    {{ showArchived ? getTranslation("country", "view_original") : getTranslation("country", "view_archived") }}
+  </button>
 
   <Table>
     <TableHeader :columns="columns" :sortColumn="sortColumn" :sortDirection="sortDirection" :route="'/city'"
@@ -19,7 +24,8 @@
         country_name: city.state.country.name,
         created_at: dayjs(city.created_at).format('DD MMM YYYY, hh:mm A'), // Direct formatting here
         updated_at: dayjs(city.updated_at).format('DD MMM YYYY, hh:mm A') // Direct formatting here
-      }" :editRoute="'/city/create'" :deleteRoute="'/api/city'" :deleteFunction="deleteCity" />
+      }" :editRoute="'/city/create'" :deleteRoute="'/api/city'" :deleteFunction="deleteCity"
+        :restoreFunction="restoreCity" :permanentDeleteFunction="permanentDeleteCity" :showArchived="showArchived" />
     </tbody>
   </Table>
 
@@ -49,7 +55,11 @@ import { useCityStore } from "@/stores/cityStore";
 import { useTranslationStore } from "@/stores/translationStore";
 import dayjs from "dayjs";
 
+
 const route = useRoute(); // Access the current route
+
+// Reactive state for toggling archived view
+const showArchived = ref(false);
 
 // Store setup
 const cityStore = useCityStore();
@@ -65,6 +75,8 @@ const sortDirection = computed(() => cityStore.sortDirection);
 const getTranslation = translationStore.getTranslation;
 
 const deleteCity = cityStore.deleteCity;
+const restoreCity = cityStore.restoreCity;
+const permanentDeleteCity = cityStore.permanentDeleteCity;
 
 const columns = computed(() => ({
   id: getTranslation("components", "id"),
@@ -86,6 +98,7 @@ const fetchCities = (url = null) => {
     search: cityStore.search || "",
     sort: cityStore.sortColumn || "id",
     direction: cityStore.sortDirection || "asc",
+    archived: showArchived.value,
   });
 };
 
@@ -101,6 +114,18 @@ const handleSort = ({ column, direction }) => {
     search: cityStore.search,
     sort: column,
     direction: newDirection,
+    archived: showArchived.value,
+  });
+};
+
+//Toggle function to switch between archived and active countries
+const toggleArchivedView = () => {
+  showArchived.value = !showArchived.value;
+  cityStore.fetchCities({
+    search: cityStore.search || "",
+    sort: cityStore.sortColumn || "id",
+    direction: cityStore.sortDirection || "asc",
+    archived: showArchived.value,
   });
 };
 
@@ -108,12 +133,19 @@ const handleSort = ({ column, direction }) => {
 watch(
   () => route.query, // Watch the route's query parameters
   (newQuery) => {
-    const { search = "", sort = "id", direction = "asc" } = newQuery;
+    const { search = "", sort = "id", direction = "asc", archived = false } = newQuery;
+
+     // Convert `archived` to a boolean
+     const isArchived = archived === "true";
+
     cityStore.fetchCities({
       search,
       sort,
       direction,
+      archived: isArchived
     });
+    
+    showArchived.value = isArchived;
   },
   { immediate: true } // Run immediately on component mount
 );

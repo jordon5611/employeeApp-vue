@@ -14,7 +14,7 @@ export const useCountryStore = defineStore("country", {
         errors: {},
     }),
     actions: {
-        async fetchCountries({ search = "", sort = "id", direction = "asc", url = "/api/country" } = {}) {
+        async fetchCountries({ search = "", sort = "id", direction = "asc", archived = false, url = "/api/country" } = {},) {
             try {
 
                 // Extract existing query parameters from the provided URL
@@ -25,6 +25,11 @@ export const useCountryStore = defineStore("country", {
                 params.set("search", search);
                 params.set("sort", sort);
                 params.set("direction", direction);
+
+                // Check if archived view is requested and add query param
+
+                params.set("archived", archived);
+
 
                 // Update the browser's URL without reloading the page
                 const webUrl = new URL(window.location.href);
@@ -91,6 +96,40 @@ export const useCountryStore = defineStore("country", {
                     console.error("Error updating country:", error);
                 }
                 throw error;
+            }
+        },
+
+        async restoreCountry(id) {
+            try {
+                const response = await axios.post(`/api/country/${id}/restore`);
+                this.countries = this.countries.filter(country => country.id !== id);
+
+                return { status: "success", message: response.data.message };
+            } catch (error) {
+                const errorMessage =
+                    error.response?.data?.message || "Failed to delete the state.";
+
+                // Log the error
+                console.error("Error deleting state:", error);
+                // Return the error message
+                return { status: "error", message: errorMessage };
+            }
+        },
+
+        async forceDeleteCountry(id) {
+            try {
+                const response = await axios.delete(`/api/country/${id}/force-delete`);
+                this.countries = this.countries.filter(country => country.id !== id);
+
+                return { status: "success", message: response.data.message };
+            } catch (error) {
+                const errorMessage =
+                    error.response?.data?.message || "Failed to delete the state.";
+
+                // Log the error
+                console.error("Error deleting state:", error);
+                // Return the error message
+                return { status: "error", message: errorMessage };
             }
         },
         resetForm() {

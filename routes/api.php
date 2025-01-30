@@ -54,3 +54,18 @@ Route::get('/translations/{locale}', function ($locale) { //{type} in func($type
 });
 
 Route::get('/locale', [EmployerDetailsController::class, 'currentLocale']);
+
+Route::post('/country/{id}/restore', [CountryApiController::class, 'restore']); // Restore
+Route::delete('/country/{id}/force-delete', [CountryApiController::class, 'forceDelete']); // Permanently delete
+
+
+Route::post('/state/{id}/restore', [StateApiController::class, 'restore']); // Restore
+Route::delete('/state/{id}/force-delete', [StateApiController::class, 'forceDelete']); // Permanently delete
+
+
+Route::post('/city/{id}/restore', [CityApiController::class, 'restore']); // Restore
+Route::delete('/city/{id}/force-delete', [CityApiController::class, 'forceDelete']); // Permanently delete
+
+
+Route::post('/employee/{id}/restore', [EmployeeApiController::class, 'restore']); // Restore
+Route::delete('/employee/{id}/force-delete', [EmployeeApiController::class, 'forceDelete']); // Permanently delete

@@ -20,6 +20,10 @@ class StateApiController extends Controller
         // Start building the query
         $query = State::query()->with('country'); // Include related country data
 
+        if (request()->has('archived') && request()->archived == "true") {
+            $query->onlyTrashed(); // Fetch only soft-deleted records
+        }
+        
         // Add search functionality
         if (!empty($search)) {
             $query->where('states.name', 'like', '%' . $search . '%') // Search by state name
@@ -117,6 +121,28 @@ class StateApiController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => __('errorMessages.state_delete_success'),
+        ]);
+    }
+
+    public function restore($id)
+    {
+        $state = State::onlyTrashed()->findOrFail($id);
+        $state->restore();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => __('errorMessages.state_restore_success'),
+        ]);
+    }
+
+    public function forceDelete($id)
+    {
+        $state = State::onlyTrashed()->findOrFail($id);
+        $state->forceDelete();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => __('errorMessages.state_permanent_delete_success'),
         ]);
     }
 }

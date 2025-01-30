@@ -12,5 +12,9 @@ return [
     'delete' => 'Delete',
 
     'createButton' => 'Create',
-    'updateButton' => 'Update'
+    'updateButton' => 'Update',
+
+    'restore' => 'Restore',
+    'permanentDelete' => 'Permanent Delete',
+    
 ];

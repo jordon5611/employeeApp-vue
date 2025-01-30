@@ -23,6 +23,10 @@ class CityApiController extends Controller
         // Start building the query
         $query = City::query()->with(['state', 'state.country']);
 
+        if (request()->has('archived') && request()->archived == "true") {
+            $query->onlyTrashed(); // Fetch only soft-deleted records
+        }
+
         // Add search functionality
         if (!empty($search)) {
             $query->where('cities.name', 'like', '%' . $search . '%')
@@ -121,6 +125,28 @@ class CityApiController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => __('errorMessages.city_delete_success'),
+        ]);
+    }
+
+    public function restore($id)
+    {
+        $city = City::onlyTrashed()->findOrFail($id);
+        $city->restore();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => __('errorMessages.city_restore_success'),
+        ]);
+    }
+
+    public function forceDelete($id)
+    {
+        $city = City::onlyTrashed()->findOrFail($id);
+        $city->forceDelete();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => __('errorMessages.city_permanent_delete_success'),
         ]);
     }
 }

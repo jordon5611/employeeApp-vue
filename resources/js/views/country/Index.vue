@@ -1,12 +1,21 @@
 <template>
-  <h1 class="text-3xl font-bold mb-6">{{getTranslation("country", "ls_country")}}</h1>
+  <h1 class="text-3xl font-bold mb-6">{{ getTranslation("country", "ls_country") }}</h1>
 
   <SearchForm :route="'/country'" :placeholder="getTranslation('country', 'search_country')" @search="handleSearch" />
 
-  <router-link to="/country/create"
-    class="inline-block bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded mb-6">
-    {{getTranslation("country", "country_name")}}
-  </router-link>
+  <div class="">
+    <router-link to="/country/create"
+      class="mr-4 inline-block bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded mb-6">
+      {{ getTranslation("country", "country_name") }}
+    </router-link>
+
+    <button @click="toggleArchivedView"
+      class="mr-4 bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded mb-6">
+      {{ showArchived ? getTranslation("country", "view_original") : getTranslation("country", "view_archived") }}
+    </button>
+
+  </div>
+
 
   <Table>
     <TableHeader :columns="columns" :sortColumn="sortColumn" :sortDirection="sortDirection" :route="'/country'"
@@ -17,7 +26,8 @@
         name: country.name,
         created_at: dayjs(country.created_at).format('DD MMM YYYY, hh:mm A'), // Direct formatting here
         updated_at: dayjs(country.updated_at).format('DD MMM YYYY, hh:mm A') // Direct formatting here
-      }" :editRoute="'/country/create'" :deleteRoute="'/api/country'" :deleteFunction=deleteCountry />
+      }" :editRoute="'/country/create'" :deleteRoute="'/api/country'" :deleteFunction=deleteCountry
+        :restoreFunction="restoreCountry" :permanentDeleteFunction="forceDeleteCountry" :showArchived="showArchived" />
     </tbody>
   </Table>
 
@@ -35,7 +45,7 @@
 </template>
 
 <script setup>
-import { computed, reactive, onMounted } from "vue";
+import { computed, reactive, onMounted, ref, watch } from "vue";
 import { useCountryStore } from "@/stores/countryStore";
 import { useTranslationStore } from "@/stores/translationStore";
 import SearchForm from "@/components/SearchForm.vue";
@@ -43,10 +53,16 @@ import Table from "@/components/Table.vue";
 import TableHeader from "@/components/TableHeader.vue";
 import TableRow from "@/components/TableRow.vue";
 import dayjs from "dayjs";
+import { useRoute } from "vue-router";
 
 // Initialize the country store
 const countryStore = useCountryStore();
 const translationStore = useTranslationStore();
+
+// Reactive state for toggling archived view
+const showArchived = ref(false);
+
+const route = useRoute(); // Access the current route
 
 // Reactive variables and computed properties
 const countries = computed(() => countryStore.countries); // Country data
@@ -78,6 +94,7 @@ const fetchCountries = (url = null) => {
     search: countryStore.search || "", // Preserve the current search term
     sort: countryStore.sortColumn || "id", // Preserve the current sort column
     direction: countryStore.sortDirection || "asc", // Preserve the current sort direction
+    archived: showArchived.value ? true : false, // Fetch archived or active
   });
 };
 
@@ -85,7 +102,7 @@ const fetchCountries = (url = null) => {
 const handleSort = async ({ column, direction }) => {
   const newDirection =
     countryStore.sortColumn === column &&
-    countryStore.sortDirection === "asc"
+      countryStore.sortDirection === "asc"
       ? "desc"
       : "asc";
 
@@ -97,16 +114,52 @@ const handleSort = async ({ column, direction }) => {
     search: countryStore.search,
     sort: column,
     direction: newDirection,
+    archived: showArchived.value,
   });
 };
+
+//Toggle function to switch between archived and active countries
+const toggleArchivedView = () => {
+  showArchived.value = !showArchived.value;
+  countryStore.fetchCountries({
+    search: countryStore.search || "",
+    sort: countryStore.sortColumn || "id",
+    direction: countryStore.sortDirection || "asc",
+    archived: showArchived.value,
+  });
+};
+
+// Watch for route query changes
+watch(
+  () => route.query, // Watch the route's query parameters
+  (newQuery) => {
+
+    const { search = "", sort = "id", direction = "asc", archived = false } = newQuery;
+
+    // Convert `archived` to a boolean
+    const isArchived = archived === "true";
+
+    countryStore.fetchCountries({
+      search,
+      sort,
+      direction,
+      archived: isArchived,
+    });
+    
+     // Update the `showArchived` ref
+     showArchived.value = isArchived;
+  },
+  { immediate: true } // Run immediately on component mount
+);
+
 
 // Fetch initial data on mount
 onMounted(() => {
   const initializeData = async () => {
     if (!Object.keys(translationStore.translations).length) {
-      await translationStore.fetchTranslations(translationStore.locale );
+      await translationStore.fetchTranslations(translationStore.locale);
     }
-    countryStore.fetchCountries();
+    //countryStore.fetchCountries();
   };
 
   initializeData(); // Call the async function
@@ -114,5 +167,8 @@ onMounted(() => {
 
 // Expose `deleteCountry` from the store for use in the template
 const deleteCountry = countryStore.deleteCountry;
-</script>
 
+const restoreCountry = countryStore.restoreCountry;
+
+const forceDeleteCountry = countryStore.forceDeleteCountry;
+</script>

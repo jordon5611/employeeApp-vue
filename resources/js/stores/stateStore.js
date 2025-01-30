@@ -16,7 +16,7 @@ export const useStateStore = defineStore("state", {
         errors: {},
     }),
     actions: {
-        async fetchStates({ search = "", sort = "id", direction = "asc", url = "/api/state" } = {}) {
+        async fetchStates({ search = "", sort = "id", direction = "asc", archived = false, url = "/api/state" } = {}) {
             try {
                 // Extract existing query parameters from the provided URL
                 const urlObj = new URL(url, window.location.origin); // Ensure URL is absolute
@@ -26,6 +26,8 @@ export const useStateStore = defineStore("state", {
                 params.set("search", search);
                 params.set("sort", sort);
                 params.set("direction", direction);
+
+                params.set("archived", archived);
 
                 // Update the browser's URL without reloading the page
                 const webUrl = new URL(window.location.href);
@@ -114,6 +116,33 @@ export const useStateStore = defineStore("state", {
                 return { status: "error", message: errorMessage };
             }
         },
+        async restoreState(id) {
+            try {
+                const response = await axios.post(`/api/state/${id}/restore`);
+                // Refresh state list
+                this.states = this.states.filter(state => state.id !== id);
+                return { status: "success", message: response.data.message };
+            } catch (error) {
+                const errorMessage =
+                    error.response?.data?.message || "Failed to restore the state.";
+                console.error("Error restoring state:", error);
+                return { status: "error", message: errorMessage };
+            }
+        },
+        
+        async permanentDeleteState(id) {
+            try {
+                const response = await axios.delete(`/api/state/${id}/force-delete`);
+                this.states = this.states.filter(state => state.id !== id);
+                return { status: "success", message: response.data.message };
+            } catch (error) {
+                const errorMessage =
+                    error.response?.data?.message || "Failed to permanently delete the state.";
+                console.error("Error permanently deleting state:", error);
+                return { status: "error", message: errorMessage };
+            }
+        },
+        
 
         setSort(column, direction) {
             this.sortColumn = column;

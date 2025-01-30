@@ -12,5 +12,8 @@ return [
     'delete' => 'حذف کریں',
 
     'createButton' => 'تخلیق کریں',
-    'updateButton' => 'اپ ڈیٹ'
+    'updateButton' => 'اپ ڈیٹ',
+
+    'restore' => 'بحال کریں',
+    'permanentDelete' => 'مستقل حذف کریں',
 ];

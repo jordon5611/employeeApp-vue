@@ -11,4 +11,6 @@ return [
     'updated_at' => 'Updated At',
     'create' => 'Create',
     'update' => 'Update',
+    'view_archived' => 'View Archived',
+    'view_original'=> 'See Original',
 ];

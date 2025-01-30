@@ -31,7 +31,7 @@ export const useEmployeeStore = defineStore("employee", {
     errors: {},
   }),
   actions: {
-    async fetchEmployees({ search = "", sort = "id", direction = "asc", url = "/api/employee" } = {}) {
+    async fetchEmployees({ search = "", sort = "id", direction = "asc", archived = false, url = "/api/employee" } = {}) {
       try {
         const urlObj = new URL(url, window.location.origin); // Ensure URL is absolute
         const params = new URLSearchParams(urlObj.search);
@@ -41,13 +41,15 @@ export const useEmployeeStore = defineStore("employee", {
         params.set("sort", sort);
         params.set("direction", direction);
 
+        params.set("archived", archived);
+
         // Update the browser's URL without reloading the page
         const webUrl = new URL(window.location.href);
         webUrl.search = params.toString(); // Update query parameters in the browser's URL
         window.history.replaceState({}, '', webUrl);
 
         const response = await axios.get(url, {
-          params: { search, sort, direction },
+          params: { search, sort, direction, archived },
         });
         this.employees = response.data.data;
         this.pagination = response.data;
@@ -143,6 +145,33 @@ export const useEmployeeStore = defineStore("employee", {
         return { status: "error", message: "Failed to delete the employee." };
       }
     },
+
+    async restoreEmployee(id) {
+      try {
+        const response = await axios.post(`/api/employee/${id}/restore`);
+        this.employees = this.employees.filter(employee => employee.id !== id);
+        return { status: "success", message: response.data.message };
+      } catch (error) {
+        const errorMessage =
+          error.response?.data?.message || "Failed to restore the employee.";
+        console.error("Error restoring employee:", error);
+        return { status: "error", message: errorMessage };
+      }
+    },
+    
+    async permanentDeleteEmployee(id) {
+      try {
+        const response = await axios.delete(`/api/employee/${id}/force-delete`);
+        this.employees = this.employees.filter(employee => employee.id !== id);
+        return { status: "success", message: response.data.message };
+      } catch (error) {
+        const errorMessage =
+          error.response?.data?.message || "Failed to permanently delete the employee.";
+        console.error("Error permanently deleting employee:", error);
+        return { status: "error", message: errorMessage };
+      }
+    },
+    
     setSort(column, direction) {
       this.sortColumn = column;
       this.sortDirection = direction;

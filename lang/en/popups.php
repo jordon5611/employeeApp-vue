@@ -25,4 +25,16 @@ return [
         'title' => 'Success',
         'confirm_button' => '#3085d6',
     ],
+    'restore_confirmation' => [
+        'title' => 'Restore Confirmation',
+        'text' => 'Are you sure you want to restore this record?',
+        'confirm_button' => 'Yes, Restore',
+        'cancel_button' => 'Cancel',
+    ],
+    'permanent_delete_confirmation' => [
+        'title' => 'Permanent Delete Confirmation',
+        'text' => 'Are you sure you want to permanently delete this record? This action cannot be undone.',
+        'confirm_button' => 'Yes, Delete Permanently',
+        'cancel_button' => 'Cancel',
+    ],
 ];

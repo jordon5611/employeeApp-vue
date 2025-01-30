@@ -1,3 +1,5 @@
+
+
 <template>
     <tr>
         <template v-for="(cell, index) in data" :key="index">
@@ -5,20 +7,34 @@
         </template>
         <td class="border border-white px-4 py-2">
             <div class="flex gap-1">
-                <template v-if="detailsRoute">
-                    <a :href="`${detailsRoute}/${data.id}`"
-                        class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-700 transition duration-300">
-                        Show
+                <template v-if="!showArchived">
+                    <template v-if="detailsRoute">
+                        <a :href="`${detailsRoute}/${data.id}`"
+                            class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-700 transition duration-300">
+                            Show
+                        </a>
+                    </template>
+                    <a :href="`${editRoute}/${data.id}`"
+                        class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700 transition duration-300">
+                        {{ componentTranslations.edit }}
                     </a>
+                    <button @click="confirmDelete"
+                        class="bg-red-500 text-white px-3 py-2 rounded hover:bg-red-700 transition duration-300">
+                        {{ componentTranslations.delete }}
+                    </button>
                 </template>
-                <a :href="`${editRoute}/${data.id}`"
-                    class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700 transition duration-300">
-                    {{componentTranslations.edit}}
-                </a>
-                <button @click="confirmDelete"
-                    class="delete-btn bg-red-500 text-white px-3 py-2 rounded hover:bg-red-700 transition duration-300">
-                    {{componentTranslations.delete}}
-                </button>
+
+                <!-- Show Restore & Permanent Delete for Soft Deleted Records -->
+                <template v-else>
+                    <button @click="confirmRestore"
+                        class="bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-700 transition duration-300">
+                        {{ componentTranslations.restore }}
+                    </button>
+                    <button @click="confirmPermanentDelete"
+                        class="bg-red-700 text-white px-3 py-2 rounded hover:bg-red-900 transition duration-300">
+                        {{ componentTranslations.permanentDelete }}
+                    </button>
+                </template>
             </div>
         </td>
     </tr>
@@ -27,9 +43,8 @@
 <script>
 import { defineComponent, computed } from "vue";
 import Swal from "sweetalert2";
-import { useTranslationStore } from "@/stores/translationStore"; // Import Pinia translation store
-import { useCountryStore } from "@/stores/countryStore"; // Import the store
-
+import { useTranslationStore } from "@/stores/translationStore";
+import { useCountryStore } from "@/stores/countryStore";
 
 export default defineComponent({
     name: "TableRow",
@@ -52,11 +67,23 @@ export default defineComponent({
         },
         deleteFunction: {
             type: Function,
-            required: true, // This will dynamically pass the delete method
+            required: true,
+        },
+        restoreFunction: {
+            type: Function,
+            required: true,
+        },
+        permanentDeleteFunction: {
+            type: Function,
+            required: true,
+        },
+        showArchived: {
+            type: Boolean,
+            default: false,
         },
     },
     setup(props) {
-        const countryStore = useCountryStore(); // Use the store
+        const countryStore = useCountryStore();
         const translationStore = useTranslationStore();
         const componentTranslations = computed(() => translationStore.translations.components || {});
 
@@ -72,43 +99,77 @@ export default defineComponent({
             }).then(async (result) => {
                 if (result.isConfirmed) {
                     try {
-                        // Use the dynamic deleteFunction passed via props
                         const response = await props.deleteFunction(props.data.id);
-
-                        console.log("Response from deleteFunction:", response);
-                        // Check if the response contains an error or non-200 status
                         if (response.status === 'error') {
-                            console.log("Error deleting record:", response.message || "Failed to delete");
                             Swal.fire(translationStore.translations.popups?.delete_cancel?.title, response.message || "Failed to delete", "error");
-                            return; // Exit early to avoid showing success popup
-                        } else {
-                            // Display success message
-                            await Swal.fire(translationStore.translations.popups?.delete_success?.title, `${response.message}`, "success");
+                            return;
                         }
-
-
+                        await Swal.fire(translationStore.translations.popups?.delete_success?.title, `${response.message}`, "success");
                     } catch (error) {
-                        // Inspect the full error object in the console
-                        console.error("Error object details:", error);
-
-                        // Extract the backend error message or fallback to generic error message
-                        const errorMessage =
-                            error.response?.data?.message || // Backend error message (if available)
-                            error.message || // Standard JS error message
-                            "An unknown error occurred while deleting the record."; // Default error message
-
-                        // Display error in Swal
+                        const errorMessage = error.response?.data?.message || error.message || "An unknown error occurred while deleting the record.";
                         Swal.fire(translationStore.translations.popups?.delete_cancel?.title, errorMessage, "error");
                     }
-                } else {
-                    Swal.fire(translationStore.translations.popups?.delete_cancel?.title, translationStore.translations.popups?.delete_cancel?.text, "error");
                 }
             });
         };
 
+        const confirmRestore = () => {
+            Swal.fire({
+                title: translationStore.translations.popups?.restore_confirmation?.title,
+                text: translationStore.translations.popups?.restore_confirmation?.text,
+                icon: "question",
+                showCancelButton: true,
+                confirmButtonText: translationStore.translations.popups?.restore_confirmation?.confirm_button,
+                cancelButtonText: translationStore.translations.popups?.restore_confirmation?.cancel_button,
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    try {
+                        const response = await props.restoreFunction(props.data.id);
+                        if (response.status === 'error') {
+                            Swal.fire(translationStore.translations.popups?.restore_cancel?.title, response.message || "Failed to restore", "error");
+                            return;
+                        }
+                        await Swal.fire(translationStore.translations.popups?.restore_success?.title, `${response.message}`, "success");
+                    } catch (error) {
+                        const errorMessage = error.response?.data?.message || error.message || "An unknown error occurred while restoring the record.";
+                        Swal.fire(translationStore.translations.popups?.restore_cancel?.title, errorMessage, "error");
+                    }
+                }
+            });
+        };
+
+        const confirmPermanentDelete = () => {
+            Swal.fire({
+                title: translationStore.translations.popups?.permanent_delete_confirmation?.title,
+                text: translationStore.translations.popups?.permanent_delete_confirmation?.text,
+                icon: "error",
+                showCancelButton: true,
+                confirmButtonText: translationStore.translations.popups?.permanent_delete_confirmation?.confirm_button,
+                cancelButtonText: translationStore.translations.popups?.permanent_delete_confirmation?.cancel_button,
+                reverseButtons: true,
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    try {
+                        const response = await props.permanentDeleteFunction(props.data.id);
+                        if (response.status === 'error') {
+                            Swal.fire(translationStore.translations.popups?.permanent_delete_cancel?.title, response.message || "Failed to delete permanently", "error");
+                            return;
+                        }
+                        await Swal.fire(translationStore.translations.popups?.permanent_delete_success?.title, `${response.message}`, "success");
+                    } catch (error) {
+                        const errorMessage = error.response?.data?.message || error.message || "An unknown error occurred while permanently deleting the record.";
+                        Swal.fire(translationStore.translations.popups?.permanent_delete_cancel?.title, errorMessage, "error");
+                    }
+                }
+            });
+        };
+
+
         return {
             confirmDelete,
-            componentTranslations
+            confirmRestore,
+            confirmPermanentDelete,
+            componentTranslations,
         };
     },
 });

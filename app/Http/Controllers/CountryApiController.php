@@ -19,6 +19,10 @@ class CountryApiController extends Controller
         // Start building the query
         $query = Country::query();
 
+        if (request()->has('archived') && request()->archived == "true") {
+            $query->onlyTrashed(); // Fetch only soft-deleted records
+        }
+
         // Add search functionality
         if (!empty($search)) {
             $query->where('name', 'like', '%' . $search . '%');
@@ -33,13 +37,12 @@ class CountryApiController extends Controller
         //return view("country.index", compact('countries', 'sortColumn', 'sortDirection'));
 
         return response()->json($countries, 200);
-    
     }
 
     public function all()
     {
         $countries = Country::orderBy('name', 'asc')->get();
-        return response()->json($countries, 200);   
+        return response()->json($countries, 200);
     }
 
     /**
@@ -96,7 +99,7 @@ class CountryApiController extends Controller
      */
     public function destroy(string $id)
     {
-        $country = Country::find($id);
+        $country = Country::findOrFail($id);
 
         // Check if the country has associated states or employees
         if ($country->states()->exists() || $country->employees()->exists()) {
@@ -111,6 +114,35 @@ class CountryApiController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => __('errorMessages.country_delete_success'),
+        ]);
+    }
+
+    public function archived()
+    {
+        $countries = Country::onlyTrashed()->get();
+
+        return response()->json($countries);
+    }
+
+    public function restore($id)
+    {
+        $country = Country::onlyTrashed()->findOrFail($id);
+        $country->restore();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => __('errorMessages.country_restore_success'),
+        ]);
+    }
+
+    public function forceDelete($id)
+    {
+        $country = Country::onlyTrashed()->findOrFail($id);
+        $country->forceDelete();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => __('errorMessages.country_permanent_delete_success'),
         ]);
     }
 }

@@ -24,6 +24,10 @@ class EmployeeApiController extends Controller
         // Start building the query
         $query = Employee::with(['country', 'state', 'city']);
 
+        if (request()->has('archived') && request()->archived == "true") {
+            $query->onlyTrashed(); // Fetch only soft-deleted records
+        }
+
         // Add search functionality
         if (!empty($search)) {
             $query->where('firstname', 'like', '%' . $search . '%')
@@ -132,6 +136,28 @@ class EmployeeApiController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => __('errorMessages.employee_delete_success'),
+        ]);
+    }
+
+    public function restore($id)
+    {
+        $employee = Employee::onlyTrashed()->findOrFail($id);
+        $employee->restore();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => __('errorMessages.employee_restore_success'),
+        ]);
+    }
+
+    public function forceDelete($id)
+    {
+        $employee = Employee::onlyTrashed()->findOrFail($id);
+        $employee->forceDelete();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => __('errorMessages.employee_permanent_delete_success'),
         ]);
     }
 }

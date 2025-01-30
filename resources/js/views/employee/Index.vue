@@ -1,15 +1,21 @@
 <template>
   <div>
-    <h1 class="text-3xl font-bold mb-6">{{getTranslation("employee", "ls_employee")}}</h1>
+    <h1 class="text-3xl font-bold mb-6">{{ getTranslation("employee", "ls_employee") }}</h1>
 
     <!-- Search Form -->
-    <SearchForm :route="'/employee'" :placeholder="getTranslation('employee', 'search_placeholder')" @search="handleSearch" />
+    <SearchForm :route="'/employee'" :placeholder="getTranslation('employee', 'search_placeholder')"
+      @search="handleSearch" />
 
     <!-- Create Button -->
     <router-link :to="{ name: 'employee.create' }"
-      class="inline-block bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded mb-6">
-      {{getTranslation("employee", "create_employee")}}
+      class="mr-4 inline-block bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded mb-6">
+      {{ getTranslation("employee", "create_employee") }}
     </router-link>
+
+    <button @click="toggleArchivedView"
+      class="mr-4 bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded mb-6">
+      {{ showArchived ? getTranslation("country", "view_original") : getTranslation("country", "view_archived") }}
+    </button>
 
     <!-- Table -->
     <Table>
@@ -30,7 +36,9 @@
           gender: employee.gender,
           created_at: dayjs(employee.created_at).format('DD MMM YYYY, hh:mm A'), // Direct formatting here
           updated_at: dayjs(employee.updated_at).format('DD MMM YYYY, hh:mm A') // Direct formatting here
-        }" :editRoute="'/employee/create'" :deleteRoute="'/api/employee'" :deleteFunction="deleteEmployee" />
+        }" :editRoute="'/employee/create'" :deleteRoute="'/api/employee'" :deleteFunction="deleteEmployee"
+          :restoreFunction="restoreEmployee" :permanentDeleteFunction="permanentDeleteEmployee"
+          :showArchived="showArchived" />
       </tbody>
     </Table>
 
@@ -51,7 +59,7 @@
 
 
 <script setup>
-import { computed, reactive, onMounted, watch } from "vue";
+import { computed, ref, onMounted, watch } from "vue";
 import { useEmployeeStore } from "@/stores/employeeStore";
 import SearchForm from "@/components/SearchForm.vue";
 import Table from "@/components/Table.vue";
@@ -65,6 +73,9 @@ import { useRoute } from "vue-router";
 const employeeStore = useEmployeeStore();
 const translationStore = useTranslationStore();
 
+// Reactive state for toggling archived view
+const showArchived = ref(false);
+
 // Reactive properties and computed values
 const employees = computed(() => employeeStore.employees);
 const pagination = computed(() => employeeStore.pagination);
@@ -72,6 +83,9 @@ const sortColumn = computed(() => employeeStore.sortColumn);
 const sortDirection = computed(() => employeeStore.sortDirection);
 
 const deleteEmployee = employeeStore.deleteEmployee;
+const restoreEmployee = employeeStore.restoreEmployee;
+
+const permanentDeleteEmployee = employeeStore.permanentDeleteEmployee;
 
 const route = useRoute();
 
@@ -107,6 +121,7 @@ const fetchEmployees = (url = null) => {
     search: employeeStore.search || "",
     sort: employeeStore.sortColumn || "id",
     direction: employeeStore.sortDirection || "asc",
+    archived: showArchived.value,
   });
 };
 
@@ -123,6 +138,18 @@ const handleSort = async ({ column, direction }) => {
     search: employeeStore.search,
     sort: column,
     direction: newDirection,
+    archived: showArchived.value,
+  });
+};
+
+
+const toggleArchivedView = () => {
+  showArchived.value = !showArchived.value;
+  employeeStore.fetchEmployees({
+    search: employeeStore.search || "",
+    sort: employeeStore.sortColumn || "id",
+    direction: employeeStore.sortDirection || "asc",
+    archived: showArchived.value,
   });
 };
 
@@ -130,12 +157,19 @@ const handleSort = async ({ column, direction }) => {
 watch(
   () => route.query, // Watch the route's query parameters
   (newQuery) => {
-    const { search = "", sort = "id", direction = "asc" } = newQuery;
+    const { search = "", sort = "id", direction = "asc", archived = false } = newQuery;
+
+    // Convert `archived` to a boolean
+    const isArchived = archived === "true";
+
     employeeStore.fetchEmployees({
       search,
       sort,
       direction,
+      archived: isArchived,
     });
+    
+    showArchived.value = isArchived;
   },
   { immediate: true } // Run immediately on component mount
 );

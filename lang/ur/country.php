@@ -8,4 +8,6 @@ return [
     'country_name' => 'ملک کا نام',
     'create' =>  'تخلیق کریں',
     'update' => 'ترمیم کریں',
+    'view_archived' => 'آرکائیو شدہ دیکھیں',
+    'view_original'=> 'اصل دیکھیں',
 ];

@@ -1,12 +1,17 @@
 <template>
-  <h1 class="text-3xl font-bold mb-6">{{getTranslation('state', 'ls_state')}}</h1>
+  <h1 class="text-3xl font-bold mb-6">{{ getTranslation('state', 'ls_state') }}</h1>
 
   <SearchForm :route="'/state'" :placeholder="getTranslation('state', 'search_placeholder')" @search="handleSearch" />
 
   <router-link :to="{ name: 'state.create' }"
-    class="inline-block bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded mb-6">
-    {{getTranslation('state', 'create_state')}}
+    class="mr-4 inline-block bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded mb-6">
+    {{ getTranslation('state', 'create_state') }}
   </router-link>
+
+  <button @click="toggleArchivedView"
+      class="mr-4 bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded mb-6">
+      {{ showArchived ? getTranslation("country", "view_original") : getTranslation("country", "view_archived") }}
+    </button>
 
   <Table>
     <TableHeader :columns="columns" :sortColumn="sortColumn" :sortDirection="sortDirection" :route="'/state'"
@@ -18,7 +23,8 @@
         country_name: state.country.name,
         created_at: dayjs(state.created_at).format('DD MMM YYYY, hh:mm A'), // Direct formatting here
         updated_at: dayjs(state.updated_at).format('DD MMM YYYY, hh:mm A') // Direct formatting here
-      }" :editRoute="'/state/create'" :deleteRoute="'/api/state'" :deleteFunction="deleteState" />
+      }" :editRoute="'/state/create'" :deleteRoute="'/api/state'" :deleteFunction="deleteState" 
+        :restoreFunction="restoreState" :permanentDeleteFunction="permanentDeleteState" :showArchived="showArchived" />
     </tbody>
   </Table>
 
@@ -37,7 +43,7 @@
 
 
 <script setup>
-import { computed, onMounted, reactive, watch } from "vue";
+import { computed, onMounted, reactive, watch, ref } from "vue";
 import { useStateStore } from "@/stores/stateStore";
 import dayjs from "dayjs";
 import SearchForm from "@/components/SearchForm.vue";
@@ -48,6 +54,8 @@ import { useTranslationStore } from "@/stores/translationStore";
 import { useRoute } from "vue-router";
 
 const translationStore = useTranslationStore();
+
+const showArchived = ref(false);
 
 const route = useRoute(); // Access the current route
 
@@ -64,6 +72,9 @@ const sortColumn = computed(() => stateStore.sortColumn);
 const sortDirection = computed(() => stateStore.sortDirection);
 
 const deleteState = stateStore.deleteState;
+const restoreState = stateStore.restoreState;
+const permanentDeleteState = stateStore.permanentDeleteState;
+
 
 // Columns definition
 const columns = computed(() => ({
@@ -85,6 +96,7 @@ const fetchStates = (url = null) => {
     search: stateStore.search || "",
     sort: stateStore.sortColumn || "id",
     direction: stateStore.sortDirection || "asc",
+    archived: showArchived.value ? true : false,
   });
 };
 
@@ -100,6 +112,17 @@ const handleSort = async ({ column, direction }) => {
     search: stateStore.search,
     sort: column,
     direction: newDirection,
+    archived: showArchived.value,
+  });
+};
+
+const toggleArchivedView = () => {
+  showArchived.value = !showArchived.value;
+  stateStore.fetchStates({
+    search: stateStore.search || "",
+    sort: stateStore.sortColumn || "id",
+    direction: stateStore.sortDirection || "asc",
+    archived: showArchived.value,
   });
 };
 
@@ -107,101 +130,29 @@ const handleSort = async ({ column, direction }) => {
 watch(
   () => route.query, // Watch the route's query parameters
   (newQuery) => {
-    
-    const { search = "", sort = "id", direction = "asc" } = newQuery;
+
+    const { search = "", sort = "id", direction = "asc", archived = false } = newQuery;
+
+    // Convert `archived` to a boolean
+    const isArchived = archived === "true";
+
     stateStore.fetchStates({
       search,
       sort,
       direction,
+      archived: isArchived,
     });
+
+    showArchived.value = isArchived;
   },
   { immediate: true } // Run immediately on component mount
 );
 
 // Fetch initial data on component mount
 onMounted(() => {
-  
+
   //stateStore.fetchStates();
 });
 </script>
 
-<!-- <script>
-import { useStateStore } from "@/stores/stateStore";
-import { computed, onMounted, reactive } from "vue";
-import dayjs from "dayjs";
-import SearchForm from "@/components/SearchForm.vue";
-import Table from "@/components/Table.vue";
-import TableHeader from "@/components/TableHeader.vue";
-import TableRow from "@/components/TableRow.vue";
 
-export default {
-  name: "StateIndex",
-  components: {
-    SearchForm,
-    Table,
-    TableHeader,
-    TableRow,
-  },
-  setup() {
-    const stateStore = useStateStore();
-
-    const states = computed(() => stateStore.states);
-    const pagination = computed(() => stateStore.pagination);
-    const sortColumn = computed(() => stateStore.sortColumn);
-    const sortDirection = computed(() => stateStore.sortDirection);
-
-    const columns = reactive({
-      id: "ID",
-      name: "State Name",
-      country_id: "Country Name",
-      created_at: "Created At",
-      updated_at: "Updated At",
-    });
-
-    const handleSearch = (query) => {
-      stateStore.fetchStates({ search: query });
-    };
-
-    onMounted(() => {
-      stateStore.fetchStates();
-    });
-
-    const fetchStates = (url = null) => {
-      stateStore.fetchStates({
-        url,
-        search: stateStore.search || "",
-        sort: stateStore.sortColumn || "id",
-        direction: stateStore.sortDirection || "asc",
-      });
-    };
-
-    const handleSort = async ({ column, direction }) => {
-      const newDirection =
-        stateStore.sortColumn === column &&
-          stateStore.sortDirection === "asc"
-          ? "desc"
-          : "asc";
-
-      stateStore.setSort(column, newDirection);
-
-      stateStore.fetchStates({
-        sort: column,
-        direction: newDirection,
-      });
-    };
-
-    return {
-      states,
-      pagination,
-      columns,
-      handleSearch,
-      handleSort,
-      fetchStates,
-      sortColumn,
-      sortDirection,
-      deleteState: stateStore.deleteState,
-      dayjs
-    };
-  },
-};
-</script> -->

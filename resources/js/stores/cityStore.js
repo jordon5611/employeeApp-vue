@@ -18,7 +18,7 @@ export const useCityStore = defineStore("city", {
     errors: {},
   }),
   actions: {
-    async fetchCities({ search = "", sort = "id", direction = "asc", url = "/api/city" } = {}) {
+    async fetchCities({ search = "", sort = "id", direction = "asc", archived = false, url = "/api/city" } = {}) {
       try {
         const urlObj = new URL(url, window.location.origin); // Ensure URL is absolute
         const params = new URLSearchParams(urlObj.search);
@@ -28,13 +28,15 @@ export const useCityStore = defineStore("city", {
         params.set("sort", sort);
         params.set("direction", direction);
 
+        params.set("archived", archived);
+
         // Update the browser's URL without reloading the page
         const webUrl = new URL(window.location.href);
         webUrl.search = params.toString(); // Update query parameters in the browser's URL
         window.history.replaceState({}, '', webUrl);
 
         const response = await axios.get(url, {
-          params: { search, sort, direction },
+          params: { search, sort, direction, archived },
         });
         this.cities = response.data.data;
         this.pagination = response.data;
@@ -121,6 +123,31 @@ export const useCityStore = defineStore("city", {
         // Log the error
         console.error("Error deleting city:", error);
         // Return the error message
+        return { status: "error", message: errorMessage };
+      }
+    },
+    async restoreCity(id) {
+      try {
+        const response = await axios.post(`/api/city/${id}/restore`);
+        this.cities = this.cities.filter(city => city.id !== id);
+        return { status: "success", message: response.data.message };
+      } catch (error) {
+        const errorMessage =
+          error.response?.data?.message || "Failed to restore the city.";
+        console.error("Error restoring city:", error);
+        return { status: "error", message: errorMessage };
+      }
+    },
+
+    async permanentDeleteCity(id) {
+      try {
+        const response = await axios.delete(`/api/city/${id}/force-delete`);
+        this.cities = this.cities.filter(city => city.id !== id);
+        return { status: "success", message: response.data.message };
+      } catch (error) {
+        const errorMessage =
+          error.response?.data?.message || "Failed to permanently delete the city.";
+        console.error("Error permanently deleting city:", error);
         return { status: "error", message: errorMessage };
       }
     },
