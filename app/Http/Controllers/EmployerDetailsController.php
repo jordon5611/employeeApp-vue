@@ -47,4 +47,6 @@ class EmployerDetailsController extends Controller
         return response()->json(['locale' => $locale]);
     }
 
+    
+
 }

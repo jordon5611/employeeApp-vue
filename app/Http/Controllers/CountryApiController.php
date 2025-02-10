@@ -12,29 +12,36 @@ class CountryApiController extends Controller
      */
     public function index()
     {
-        $sortColumn = request()->get('sort', 'id'); // Default sort by 'id'
-        $sortDirection = request()->get('direction', 'asc'); // Default sort direction is ascending
-        $search = request()->get('search', ''); // Search query (default empty)
+        // $sortColumn = request()->get('sort', 'id'); // Default sort by 'id'
+        // $sortDirection = request()->get('direction', 'asc'); // Default sort direction is ascending
+        // $search = request()->get('search', ''); // Search query (default empty)
 
-        // Start building the query
-        $query = Country::query();
+        // // Start building the query
+        // $query = Country::query();
 
-        if (request()->has('archived') && request()->archived == "true") {
-            $query->onlyTrashed(); // Fetch only soft-deleted records
-        }
+        // if (request()->has('archived') && request()->archived == "true") {
+        //     $query->onlyTrashed(); // Fetch only soft-deleted records
+        // }
 
-        // Add search functionality
-        if (!empty($search)) {
-            $query->where('name', 'like', '%' . $search . '%');
-        }
+        // // Add search functionality
+        // if (!empty($search)) {
+        //     $query->where('name', 'like', '%' . $search . '%');
+        // }
 
-        // Apply sorting
-        $query->orderBy($sortColumn, $sortDirection);
+        // // Apply sorting
+        // $query->orderBy($sortColumn, $sortDirection);
 
-        // Paginate results
-        $countries = $query->paginate(10)->withQueryString();
+        // // Paginate results
+        // $countries = $query->paginate(10)->withQueryString();
 
         //return view("country.index", compact('countries', 'sortColumn', 'sortDirection'));
+
+        $countries = Country::query()
+            ->search(request()->get('search', ''))
+            ->archived(request()->get('archived', 'false'))
+            ->sort(request()->get('sort', 'id'), request()->get('direction', 'asc'))
+            ->paginate(10)
+            ->withQueryString();
 
         return response()->json($countries, 200);
     }

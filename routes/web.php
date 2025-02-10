@@ -24,6 +24,7 @@ use Illuminate\Support\Facades\Route;
 
 // Route::get('/locale/{lang}', [EmployerDetailsController::class, 'changeLang'])->name('locale.change');
 
+
 Route::get('/states/{country}', [EmployerDetailsController::class, 'getStates']);
 Route::get('/cities/{state}', [EmployerDetailsController::class, 'getCities']);
 

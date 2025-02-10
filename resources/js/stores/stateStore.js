@@ -1,5 +1,8 @@
 import { defineStore } from "pinia";
 import axios from "axios";
+import { useTranslationStore } from "@/stores/translationStore";
+
+const translationStore = useTranslationStore();
 
 export const useStateStore = defineStore("state", {
     state: () => ({
@@ -98,6 +101,7 @@ export const useStateStore = defineStore("state", {
         },
         async deleteState(id) {
             try {
+                await translationStore.setLocale(translationStore.locale);
                 // Send DELETE request to the backend
                 const response = await axios.delete(`/api/state/${id}`);
 
@@ -118,6 +122,7 @@ export const useStateStore = defineStore("state", {
         },
         async restoreState(id) {
             try {
+                await translationStore.setLocale(translationStore.locale);
                 const response = await axios.post(`/api/state/${id}/restore`);
                 // Refresh state list
                 this.states = this.states.filter(state => state.id !== id);
@@ -132,6 +137,7 @@ export const useStateStore = defineStore("state", {
         
         async permanentDeleteState(id) {
             try {
+                await translationStore.setLocale(translationStore.locale);
                 const response = await axios.delete(`/api/state/${id}/force-delete`);
                 this.states = this.states.filter(state => state.id !== id);
                 return { status: "success", message: response.data.message };

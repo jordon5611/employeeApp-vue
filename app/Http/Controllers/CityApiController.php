@@ -18,42 +18,50 @@ class CityApiController extends Controller
 
         $sortColumn = request()->get('sort', 'id'); // Default sort by 'id'
         $sortDirection = request()->get('direction', 'asc'); // Default sort direction is ascending
-        $search = request()->get('search', ''); // Search query (default empty)
+        //$search = request()->get('search', ''); // Search query (default empty)
 
-        // Start building the query
-        $query = City::query()->with(['state', 'state.country']);
+        // // Start building the query
+        // $query = City::query()->with(['state', 'state.country']);
 
-        if (request()->has('archived') && request()->archived == "true") {
-            $query->onlyTrashed(); // Fetch only soft-deleted records
-        }
+        // if (request()->has('archived') && request()->archived == "true") {
+        //     $query->onlyTrashed(); // Fetch only soft-deleted records
+        // }
 
-        // Add search functionality
-        if (!empty($search)) {
-            $query->where('cities.name', 'like', '%' . $search . '%')
-                ->orWhereHas('state', function ($q) use ($search) {
-                    $q->where('name', 'like', '%' . $search . '%')
-                        ->orWhereHas('country', function ($q) use ($search) {
-                            $q->where('name', 'like', '%' . $search . '%');
-                        });
-                });
-        }
+        // // Add search functionality
+        // if (!empty($search)) {
+        //     $query->where('cities.name', 'like', '%' . $search . '%')
+        //         ->orWhereHas('state', function ($q) use ($search) {
+        //             $q->where('name', 'like', '%' . $search . '%')
+        //                 ->orWhereHas('country', function ($q) use ($search) {
+        //                     $q->where('name', 'like', '%' . $search . '%');
+        //                 });
+        //         });
+        // }
 
-        // Sorting logic
-        if ($sortColumn === 'state_id') {
-            $query->join('states', 'cities.state_id', '=', 'states.id')
-                ->select('cities.*', 'states.name as state_name')
-                ->orderBy('states.name', $sortDirection);
-        } elseif ($sortColumn === 'country_id') {
-            $query->join('states', 'cities.state_id', '=', 'states.id')
-                ->join('countries', 'states.country_id', '=', 'countries.id')
-                ->select('cities.*', 'countries.name as country_name')
-                ->orderBy('countries.name', $sortDirection);
-        } else {
-            $query->orderBy($sortColumn, $sortDirection);
-        }
+        // // Sorting logic
+        // if ($sortColumn === 'state_id') {
+        //     $query->join('states', 'cities.state_id', '=', 'states.id')
+        //         ->select('cities.*', 'states.name as state_name')
+        //         ->orderBy('states.name', $sortDirection);
+        // } elseif ($sortColumn === 'country_id') {
+        //     $query->join('states', 'cities.state_id', '=', 'states.id')
+        //         ->join('countries', 'states.country_id', '=', 'countries.id')
+        //         ->select('cities.*', 'countries.name as country_name')
+        //         ->orderBy('countries.name', $sortDirection);
+        // } else {
+        //     $query->orderBy($sortColumn, $sortDirection);
+        // }
 
-        // Paginate with query string to retain search and sort parameters
-        $cities = $query->paginate(10)->withQueryString();
+        // // Paginate with query string to retain search and sort parameters
+        // $cities = $query->paginate(10)->withQueryString();
+
+        $cities = City::query()
+        ->with(['state', 'state.country'])
+        ->archived(request()->get('archived', 'false')) // Apply archived filter
+        ->search(request()->get('search', '')) // Apply search filter
+        ->sort($sortColumn, $sortDirection) // Apply sorting
+        ->paginate(10)
+        ->withQueryString();
 
         return response()->json($cities, 200);
     }

@@ -44,7 +44,7 @@
 
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import SearchForm from "@/components/SearchForm.vue";
 import Table from "@/components/Table.vue";
 import TableHeader from "@/components/TableHeader.vue";
@@ -144,7 +144,7 @@ watch(
       direction,
       archived: isArchived
     });
-    
+
     showArchived.value = isArchived;
   },
   { immediate: true } // Run immediately on component mount

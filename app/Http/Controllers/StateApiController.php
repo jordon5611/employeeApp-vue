@@ -17,32 +17,42 @@ class StateApiController extends Controller
         $sortDirection = request()->get('direction', 'asc'); // Default sort direction is ascending
         $search = request()->get('search'); // Capture the search input
 
-        // Start building the query
-        $query = State::query()->with('country'); // Include related country data
+        // // Start building the query
+        // $query = State::query()->with('country'); // Include related country data
 
-        if (request()->has('archived') && request()->archived == "true") {
-            $query->onlyTrashed(); // Fetch only soft-deleted records
-        }
-        
-        // Add search functionality
-        if (!empty($search)) {
-            $query->where('states.name', 'like', '%' . $search . '%') // Search by state name
-            ->orWhereHas('country', function ($q) use ($search) { // Search by country name
-                $q->where('countries.name', 'like', '%' . $search . '%');
-            });
-        }
+        // if (request()->has('archived') && request()->archived == "true") {
+        //     $query->onlyTrashed(); // Fetch only soft-deleted records
+        // }
 
-        // Sorting logic
-        if ($sortColumn === 'country_id') {
-            $query->join('countries', 'states.country_id', '=', 'countries.id')
-                ->select('states.*', 'countries.name as country_name')
-                ->orderBy('countries.name', $sortDirection);
-        } else {
-            $query->orderBy($sortColumn, $sortDirection);
-        }
+        // // Add search functionality
+        // if (!empty($search)) {
+        //     $query->where('states.name', 'like', '%' . $search . '%') // Search by state name
+        //     ->orWhereHas('country', function ($q) use ($search) { // Search by country name
+        //         $q->where('countries.name', 'like', '%' . $search . '%');
+        //     });
+        // }
 
-        // Paginate the results with query string
-        $states = $query->paginate(10)->withQueryString();
+        // // Sorting logic
+        // if ($sortColumn === 'country_id') {
+        //     $query->join('countries', 'states.country_id', '=', 'countries.id')
+        //         ->select('states.*', 'countries.name as country_name')
+        //         ->orderBy('countries.name', $sortDirection);
+        // } else {
+        //     $query->orderBy($sortColumn, $sortDirection);
+        // }
+
+        // // Paginate the results with query string
+        // $states = $query->paginate(10)->withQueryString();
+
+        $archived = request()->get('archived', 'false'); // Default: 'false'
+
+        $states = State::query()
+            ->with('country') // Include related country
+            ->archived($archived) // Apply archived filter
+            ->search($search) // Apply search filter
+            ->sort($sortColumn, $sortDirection) // Apply sorting
+            ->paginate(10)
+            ->withQueryString();
 
         return response()->json($states, 200);
     }
@@ -50,7 +60,7 @@ class StateApiController extends Controller
     public function all()
     {
         $state = State::orderBy('name', 'asc')->get();
-        return response()->json($state, 200);   
+        return response()->json($state, 200);
     }
 
     /**

@@ -1,6 +1,10 @@
 import { defineStore } from "pinia";
 import axios from "axios";
 
+import { useTranslationStore } from "@/stores/translationStore";
+
+const translationStore = useTranslationStore();
+
 export const useCountryStore = defineStore("country", {
     state: () => ({
         countries: [],
@@ -101,6 +105,7 @@ export const useCountryStore = defineStore("country", {
 
         async restoreCountry(id) {
             try {
+                await translationStore.setLocale(translationStore.locale);
                 const response = await axios.post(`/api/country/${id}/restore`);
                 this.countries = this.countries.filter(country => country.id !== id);
 
@@ -118,6 +123,7 @@ export const useCountryStore = defineStore("country", {
 
         async forceDeleteCountry(id) {
             try {
+                await translationStore.setLocale(translationStore.locale);
                 const response = await axios.delete(`/api/country/${id}/force-delete`);
                 this.countries = this.countries.filter(country => country.id !== id);
 
@@ -149,6 +155,7 @@ export const useCountryStore = defineStore("country", {
         // New method to delete country and update the state
         async deleteCountry(id) {
             try {
+                await translationStore.setLocale(translationStore.locale);
                 // Send DELETE request to the backend
                 const response = await axios.delete(`/api/country/${id}`);
 

@@ -1,5 +1,8 @@
 import { defineStore } from "pinia";
 import axios from "axios";
+import { useTranslationStore } from "@/stores/translationStore";
+
+const translationStore = useTranslationStore();
 
 export const useEmployeeStore = defineStore("employee", {
   state: () => ({
@@ -137,6 +140,7 @@ export const useEmployeeStore = defineStore("employee", {
     },
     async deleteEmployee(id) {
       try {
+        await translationStore.setLocale(translationStore.locale);
         const response = await axios.delete(`/api/employee/${id}`);
         this.employees = this.employees.filter((employee) => employee.id !== id);
         return { status: "success", message: response.data.message };
@@ -148,6 +152,7 @@ export const useEmployeeStore = defineStore("employee", {
 
     async restoreEmployee(id) {
       try {
+        await translationStore.setLocale(translationStore.locale);
         const response = await axios.post(`/api/employee/${id}/restore`);
         this.employees = this.employees.filter(employee => employee.id !== id);
         return { status: "success", message: response.data.message };
@@ -161,6 +166,7 @@ export const useEmployeeStore = defineStore("employee", {
     
     async permanentDeleteEmployee(id) {
       try {
+        await translationStore.setLocale(translationStore.locale);
         const response = await axios.delete(`/api/employee/${id}/force-delete`);
         this.employees = this.employees.filter(employee => employee.id !== id);
         return { status: "success", message: response.data.message };

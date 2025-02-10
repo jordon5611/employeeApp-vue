@@ -86,6 +86,7 @@ export default defineComponent({
         const countryStore = useCountryStore();
         const translationStore = useTranslationStore();
         const componentTranslations = computed(() => translationStore.translations.components || {});
+        
 
         const confirmDelete = () => {
             Swal.fire({
